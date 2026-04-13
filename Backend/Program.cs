@@ -17,10 +17,11 @@ builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 
 // Add CORS Policy for Angular Frontend
+var corsOrigins = builder.Configuration.GetValue<string>("CorsOrigins")?.Split(',') ?? new[] { "http://localhost:4200" };
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy => 
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins(corsOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
