@@ -55,15 +55,21 @@ docker_frontend:
 # Stage: Deploy
 deploy_k8s:
   stage: deploy
-  image: alpine/k8s:latest
+  image:
+    name: alpine/k8s:latest
+    entrypoint: [""]
+  before_script:
+    # Install gettext for envsubst
+    - apk add --no-cache gettext
   script:
     - echo "$KUBE_CONFIG" | base64 -d > kubeconfig
     - export KUBECONFIG=$(pwd)/kubeconfig
     # Create a temporary directory for processed manifests
     - mkdir -p manifests
+    # Substitute environment variables in all manifests
     - |
       for f in k8s/*.yaml; do 
-        envsubst < $f > manifests/$(basename $f)
+        envsubst < "$f" > "manifests/$(basename "$f")"
       done
     # Apply the processed manifests
     - kubectl apply -f manifests/namespace.yaml
