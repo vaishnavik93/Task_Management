@@ -1,0 +1,93 @@
+<div class="page-header">
+  <h1 class="page-title">{{ isEditMode ? 'Edit Task' : 'Create New Task' }}</h1>
+  <a routerLink="/tasks" class="btn btn-secondary">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    Back to Tasks
+  </a>
+</div>
+
+<div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+  
+  @if (errorMessage()) {
+    <div class="mb-4" style="background: rgba(255, 71, 87, 0.1); border: 1px solid rgba(255, 71, 87, 0.3); padding: 1rem; border-radius: 8px; color: #ff7675; margin-bottom: 1.5rem;">
+      <strong>Error:</strong> {{ errorMessage() }}
+    </div>
+  }
+
+  <form [formGroup]="taskForm" (ngSubmit)="onSubmit()">
+    
+    <div class="form-group">
+      <label for="title" class="form-label">Task Title <span style="color: var(--danger)">*</span></label>
+      <input 
+        type="text" 
+        id="title" 
+        formControlName="title" 
+        class="form-control" 
+        placeholder="Enter task title (max 100 characters)"
+      >
+      @if (f['title'].invalid && (f['title'].dirty || f['title'].touched)) {
+        <div class="error-message">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          @if (f['title'].errors?.['required']) {
+            <span>Title is required.</span>
+          }
+          @if (f['title'].errors?.['maxlength']) {
+            <span>Title cannot exceed 100 characters.</span>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="description" class="form-label">Description</label>
+      <textarea 
+        id="description" 
+        formControlName="description" 
+        class="form-control" 
+        rows="4"
+        placeholder="Add details about this task..."
+      ></textarea>
+    </div>
+
+    <div class="form-group" style="display: flex; gap: 2rem;">
+      <div style="flex: 1;">
+        <label for="dueDate" class="form-label">Due Date</label>
+        <input 
+          type="date" 
+          id="dueDate" 
+          formControlName="dueDate" 
+          class="form-control"
+        >
+      </div>
+      
+      <div style="flex: 1; display: flex; align-items: flex-end;">
+        <label class="checkbox-container" style="padding-bottom: 0.8rem;">
+          <input 
+            type="checkbox" 
+            formControlName="isCompleted" 
+            class="checkbox-custom"
+          >
+          <span style="font-weight: 500; font-size: 1.1rem; color: #fff;">Mark as Completed</span>
+        </label>
+      </div>
+    </div>
+
+    <div style="margin-top: 2.5rem; text-align: right;">
+      <button 
+        type="submit" 
+        class="btn btn-primary" 
+        [disabled]="taskForm.invalid || isSaving()"
+        style="width: 100%; justify-content: center; font-size: 1.1rem; padding: 1rem;"
+      >
+        @if (isSaving()) {
+          <svg class="spinner" viewBox="0 0 50 50" style="width: 20px; height: 20px; margin-right: 0.5rem; border-width: 2px;"></svg>
+          Saving...
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          {{ isEditMode ? 'Update Task' : 'Save Task' }}
+        }
+      </button>
+    </div>
+    
+  </form>
+</div>

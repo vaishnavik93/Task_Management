@@ -1,0 +1,76 @@
+stages:
+  - build
+  - docker
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+  FRONTEND_IMAGE: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
+  K8S_NAMESPACE: task-management
+
+# Stage: Build
+build_backend:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:10.0
+  script:
+    - cd Backend
+    - dotnet build -c Release
+
+build_frontend:
+  stage: build
+  image: node:22-alpine
+  script:
+    - cd Frontend
+    - npm ci
+    - npm run build -- --configuration production
+
+# Stage: Docker
+docker_backend:
+  stage: docker
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - cd Backend
+    - docker build -t $BACKEND_IMAGE .
+    - docker push $BACKEND_IMAGE
+    - docker tag $BACKEND_IMAGE $CI_REGISTRY_IMAGE/backend:latest
+    - docker push $CI_REGISTRY_IMAGE/backend:latest
+
+docker_frontend:
+  stage: docker
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - cd Frontend
+    - docker build -t $FRONTEND_IMAGE .
+    - docker push $FRONTEND_IMAGE
+    - docker tag $FRONTEND_IMAGE $CI_REGISTRY_IMAGE/frontend:latest
+    - docker push $CI_REGISTRY_IMAGE/frontend:latest
+
+# Stage: Deploy
+deploy_k8s:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - echo "$KUBE_CONFIG" | base64 -d > kubeconfig
+    - export KUBECONFIG=$(pwd)/kubeconfig
+    # Install gettext for envsubst
+    - apt-get update && apt-get install -y gettext-base
+    # Create a temporary directory for processed manifests
+    - mkdir -p manifests
+    - |
+      for f in k8s/*.yaml; do 
+        envsubst < $f > manifests/$(basename $f)
+      done
+    # Apply the processed manifests
+    - kubectl apply -f manifests/namespace.yaml
+    - kubectl apply -f manifests/
+    - kubectl rollout restart deployment/backend-deployment -n $K8S_NAMESPACE
+    - kubectl rollout restart deployment/frontend-deployment -n $K8S_NAMESPACE
+  only:
+    - main
