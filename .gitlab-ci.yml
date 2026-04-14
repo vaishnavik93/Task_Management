@@ -55,12 +55,10 @@ docker_frontend:
 # Stage: Deploy
 deploy_k8s:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image: alpine/k8s:latest
   script:
     - echo "$KUBE_CONFIG" | base64 -d > kubeconfig
     - export KUBECONFIG=$(pwd)/kubeconfig
-    # Install gettext for envsubst
-    - apt-get update && apt-get install -y gettext-base
     # Create a temporary directory for processed manifests
     - mkdir -p manifests
     - |
