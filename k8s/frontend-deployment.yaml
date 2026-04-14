@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: $CI_REGISTRY_IMAGE/frontend:latest
+          image: ${FRONTEND_IMAGE}
           imagePullPolicy: Always
           ports:
             - containerPort: 80

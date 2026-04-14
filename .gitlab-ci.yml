@@ -59,8 +59,14 @@ deploy_k8s:
   script:
     - echo "$KUBE_CONFIG" | base64 -d > kubeconfig
     - export KUBECONFIG=$(pwd)/kubeconfig
-    - kubectl apply -f k8s/namespace.yaml
-    - kubectl apply -f k8s/
+    - # Install gettext for envsubst
+    - apt-get update && apt-get install -y gettext-base
+    - # Create a temporary directory for processed manifests
+    - mkdir -p manifests
+    - for f in k8s/*.yaml; do envsubst < $f > manifests/$(basename $f); done
+    - # Apply the processed manifests
+    - kubectl apply -f manifests/namespace.yaml
+    - kubectl apply -f manifests/
     - kubectl rollout restart deployment/backend-deployment -n $K8S_NAMESPACE
     - kubectl rollout restart deployment/frontend-deployment -n $K8S_NAMESPACE
   only:

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: $CI_REGISTRY_IMAGE/backend:latest
+          image: ${BACKEND_IMAGE}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

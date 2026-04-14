@@ -7,7 +7,7 @@ import { Task } from '../models/task';
   providedIn: 'root'
 })
 export class TaskService {
-  private apiUrl = 'http://localhost:5000/api/tasks'; // Updated port if needed, wait backend defaults to 5xxx HTTP/HTTPS
+  private apiUrl = '/api/tasks';
 
   constructor(private http: HttpClient) { }
 
