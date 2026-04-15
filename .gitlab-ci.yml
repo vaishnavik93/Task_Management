@@ -57,6 +57,7 @@ deploy_k8s:
   stage: deploy
   tags: [local-k8s]
   before_script:
+    - $env:KUBECONFIG = "C:\Users\vaishnavi\.kube\config"
     - if (!(Test-Path manifests)) { New-Item -ItemType Directory -Path manifests }
   script:
     - kubectl config use-context docker-desktop
