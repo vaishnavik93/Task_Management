@@ -56,7 +56,7 @@ docker_frontend:
 deploy_k8s:
   stage: deploy
   image:
-    name: alpine/k8s:latest
+    name: alpine/k8s:1.29.2
     entrypoint: [""]
   before_script:
     # Install gettext for envsubst
