@@ -55,7 +55,7 @@ docker_frontend:
 # Stage: Deploy
 deploy_k8s:
   stage: deploy
-  tags: [local]
+  tags: [local-k8s]
   before_script:
     - if (!(Test-Path manifests)) { New-Item -ItemType Directory -Path manifests }
   script:
