@@ -55,26 +55,22 @@ docker_frontend:
 # Stage: Deploy
 deploy_k8s:
   stage: deploy
-  image:
-    name: alpine/k8s:1.29.2
-    entrypoint: [""]
+  tags: [local]
   before_script:
-    # Install gettext for envsubst
-    - apk add --no-cache gettext
+    - if (!(Test-Path manifests)) { New-Item -ItemType Directory -Path manifests }
   script:
-    - echo "$KUBE_CONFIG" | base64 -d > kubeconfig
-    - export KUBECONFIG=$(pwd)/kubeconfig
-    # Create a temporary directory for processed manifests
-    - mkdir -p manifests
-    # Substitute environment variables in all manifests
+    - kubectl config use-context docker-desktop
     - |
-      for f in k8s/*.yaml; do 
-        envsubst < "$f" > "manifests/$(basename "$f")"
-      done
-    # Apply the processed manifests
+      Get-ChildItem -Path k8s\*.yaml | ForEach-Object {
+          $content = Get-Content $_.FullName -Raw
+          $content = $content -replace '\$BACKEND_IMAGE', "$env:BACKEND_IMAGE"
+          $content = $content -replace '\$FRONTEND_IMAGE', "$env:FRONTEND_IMAGE"
+          $content = $content -replace '\$K8S_NAMESPACE', "$env:K8S_NAMESPACE"
+          $content | Set-Content "manifests\$($_.Name)"
+      }
     - kubectl apply -f manifests/namespace.yaml
     - kubectl apply -f manifests/
-    - kubectl rollout restart deployment/backend-deployment -n $K8S_NAMESPACE
-    - kubectl rollout restart deployment/frontend-deployment -n $K8S_NAMESPACE
+    - kubectl rollout restart deployment/backend-deployment -n $env:K8S_NAMESPACE
+    - kubectl rollout restart deployment/frontend-deployment -n $env:K8S_NAMESPACE
   only:
     - main
