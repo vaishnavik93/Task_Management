@@ -6,16 +6,15 @@
   </a>
 </div>
 
-<div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+<div class="glass-card" style="max-width: 650px; margin: 0 auto; border-radius: 20px;">
   
-  @if (errorMessage()) {
-    <div class="mb-4" style="background: rgba(255, 71, 87, 0.1); border: 1px solid rgba(255, 71, 87, 0.3); padding: 1rem; border-radius: 8px; color: #ff7675; margin-bottom: 1.5rem;">
-      <strong>Error:</strong> {{ errorMessage() }}
-    </div>
-  }
+  <div *ngIf="errorMessage()" class="alert alert-danger animate-fade-in" style="margin-bottom: 1.5rem; padding: 1rem; border-radius: 10px; display: flex; align-items: center; gap: 0.8rem;">
+    <span class="alert-icon">⚠️</span> {{ errorMessage() }}
+  </div>
 
   <form [formGroup]="taskForm" (ngSubmit)="onSubmit()">
     
+    <!-- Task Title -->
     <div class="form-group">
       <label for="title" class="form-label">Task Title <span style="color: var(--danger)">*</span></label>
       <input 
@@ -25,19 +24,13 @@
         class="form-control" 
         placeholder="Enter task title (max 100 characters)"
       >
-      @if (f['title'].invalid && (f['title'].dirty || f['title'].touched)) {
-        <div class="error-message">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-          @if (f['title'].errors?.['required']) {
-            <span>Title is required.</span>
-          }
-          @if (f['title'].errors?.['maxlength']) {
-            <span>Title cannot exceed 100 characters.</span>
-          }
-        </div>
-      }
+      <div *ngIf="f['title'].invalid && (f['title'].dirty || f['title'].touched)" class="error-message">
+        <span *ngIf="f['title'].errors?.['required']">Title is required.</span>
+        <span *ngIf="f['title'].errors?.['maxlength']">Title cannot exceed 100 characters.</span>
+      </div>
     </div>
 
+    <!-- Description -->
     <div class="form-group">
       <label for="description" class="form-label">Description</label>
       <textarea 
@@ -49,45 +42,90 @@
       ></textarea>
     </div>
 
-    <div class="form-group" style="display: flex; gap: 2rem;">
-      <div style="flex: 1;">
-        <label for="dueDate" class="form-label">Due Date</label>
+    <!-- Project & Assignment (Two column row) -->
+    <div class="form-row" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      
+      <!-- Project Selection -->
+      <div class="form-group" style="flex: 1; min-width: 250px;">
+        <label for="projectId" class="form-label">Project <span style="color: var(--danger)">*</span></label>
+        <select id="projectId" formControlName="projectId" class="form-control" style="cursor: pointer;">
+          <option value="">-- Select Project --</option>
+          <option *ngFor="let proj of projects()" [value]="proj.id">
+            📁 {{ proj.name }}
+          </option>
+        </select>
+        <div *ngIf="f['projectId'].touched && f['projectId'].invalid" class="error-message">
+          Project association is required.
+        </div>
+      </div>
+
+      <!-- User Assignment -->
+      <div class="form-group" style="flex: 1; min-width: 250px;">
+        <label for="assignedToUserId" class="form-label">Assign To</label>
+        <select id="assignedToUserId" formControlName="assignedToUserId" class="form-control" style="cursor: pointer;">
+          <option value="">-- Unassigned --</option>
+          <option *ngFor="let member of projectMembers()" [value]="member.userId">
+            👤 {{ member.username }} ({{ member.role }})
+          </option>
+        </select>
+        <div *ngIf="f['projectId'].value === ''" class="input-hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">
+          Select a project first to see team members.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Due Date & Status (Two column row) -->
+    <div class="form-row" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      
+      <!-- Due Date -->
+      <div class="form-group" style="flex: 1; min-width: 250px;">
+        <label for="dueDate" class="form-label">Due Date <span style="color: var(--danger)">*</span></label>
         <input 
           type="date" 
           id="dueDate" 
           formControlName="dueDate" 
           class="form-control"
         >
+        <div *ngIf="f['dueDate'].touched && f['dueDate'].invalid" class="error-message">
+          Due Date is required.
+        </div>
       </div>
       
-      <div style="flex: 1; display: flex; align-items: flex-end;">
-        <label class="checkbox-container" style="padding-bottom: 0.8rem;">
-          <input 
-            type="checkbox" 
-            formControlName="isCompleted" 
-            class="checkbox-custom"
-          >
-          <span style="font-weight: 500; font-size: 1.1rem; color: #fff;">Mark as Completed</span>
-        </label>
+      <!-- Status -->
+      <div class="form-group" style="flex: 1; min-width: 250px;">
+        <label for="status" class="form-label">Task Status <span style="color: var(--danger)">*</span></label>
+        <select id="status" formControlName="status" class="form-control" style="cursor: pointer;">
+          <option value="Todo">Todo</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
       </div>
+
     </div>
 
+    <!-- Submit Button -->
     <div style="margin-top: 2.5rem; text-align: right;">
       <button 
         type="submit" 
         class="btn btn-primary" 
         [disabled]="taskForm.invalid || isSaving()"
-        style="width: 100%; justify-content: center; font-size: 1.1rem; padding: 1rem;"
+        style="width: 100%; justify-content: center; font-size: 1.1rem; padding: 1rem; border-radius: 12px;"
       >
-        @if (isSaving()) {
-          <svg class="spinner" viewBox="0 0 50 50" style="width: 20px; height: 20px; margin-right: 0.5rem; border-width: 2px;"></svg>
-          Saving...
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-          {{ isEditMode ? 'Update Task' : 'Save Task' }}
-        }
+        <span *ngIf="isSaving()" class="spinner-small" style="width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-left-color: #fff; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite; margin-right: 0.5rem;"></span>
+        <svg *ngIf="!isSaving()" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        {{ isSaving() ? 'Saving Task...' : (isEditMode ? 'Update Task' : 'Save Task') }}
       </button>
     </div>
     
   </form>
 </div>
+
+<style>
+  .input-hint {
+    color: var(--text-muted);
+  }
+  @keyframes spin {
+    100% { transform: rotate(360deg); }
+  }
+</style>

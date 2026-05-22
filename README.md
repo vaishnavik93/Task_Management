@@ -1,36 +1,56 @@
-# Task Management System
+# Team Task Management System
 
-A full-stack Task Management Application built with **.NET 10 (Web API)** and **Angular (v17+)**.
-Features a beautiful, responsive, glassmorphism-inspired UI and an Entity Framework In-Memory Database for rapid testing.
+A production-ready full-stack Task Management System featuring Role-Based Access Control, Team Collaboration, JWT Authentication, and a sleek glassmorphic dashboard.
+
+Built with **ASP.NET Core (Web API)** and **Angular (v17+)**. 
 
 ## Features
-- **Frontend**: Angular standalone components, reactive forms, vibrant styling, animations. 
-- **Backend**: Repository pattern, Service layer, EF Core In-Memory database, CORS enabled.
-- **SSR**: There is a Server-Side Rendered (SSR) Razor view demonstrating task fetching directly from the backend services via MVC.
+- **Authentication**: Secure Signup/Login using JWT Bearer Authentication and BCrypt password hashing.
+- **Role-Based Access Control**:
+  - `Admin`: Can create projects, add team members, and fully manage all tasks (Create, Read, Update, Delete).
+  - `Member`: Can view assigned tasks, update their task status (Todo, In Progress, Completed), but cannot create or delete projects/tasks.
+- **Team Management**: Admins can create projects and assign registered users to them as team members.
+- **Task Management**: Tasks are linked to projects and assigned to specific team members. Members only see projects and tasks they are assigned to.
+- **Dashboard**: A premium, glassmorphism-styled dashboard showing total tasks, in-progress, completed, and overdue metrics, with a dynamic completion progress bar.
+- **Backend Architecture**: Repository pattern, Service layer, SQLite database using Entity Framework Core with optimized relational schemas.
+- **Docker & Railway Deployment**: Fully dockerized with a multi-stage Dockerfile designed for instant deployment on Railway as a unified full-stack service.
 
-## Prerequisites
-- .NET 10 SDK (or a compatible newer SDK)
-- Node.js & npm
-- Angular CLI (`npm install -g @angular/cli`)
+## Tech Stack
+- **Backend**: ASP.NET Core 8.0, Entity Framework Core 8.0, SQLite, JWT Authentication.
+- **Frontend**: Angular 17+ (Standalone Components), Signals, Reactive Forms, RxJS, Custom Glassmorphic CSS.
+- **Containerization**: Docker (multi-stage build compiling both Frontend and Backend into a single image).
 
-## Getting Started
+## Running Locally
 
-### 1. Run the Backend API
+### Prerequisites
+- .NET 8.0+ SDK
+- Node.js (v20+) & npm
+- Angular CLI
+
+### 1. Start the Backend API
 ```powershell
 cd Backend
 dotnet run --urls="http://localhost:5000"
 ```
-The API will be available at `http://localhost:5000/api/tasks`.
+The SQLite database (`taskmanager.db`) will be automatically created and migrated on first startup.
 
-### 2. Run the Angular Frontend
+### 2. Start the Angular Frontend
+In a new terminal:
 ```powershell
 cd Frontend
 npm install
-ng serve -o
+npm run start
 ```
-The application will open in your browser at `http://localhost:4200`.
+The application will be available at `http://localhost:4200/`. (The development server proxies `/api` requests to the backend automatically).
 
-### Troubleshooting
-- **CORS Errors**: Ensure the backend is running correctly. The production deployment uses Kubernetes Ingress to route `/api` to the backend.
-- **Missing Modules**: If the frontend fails to compile, try running `npm install` again.
+## Deployment
 
+### Railway (Recommended)
+This repository is configured to deploy as a unified full-stack application on Railway.
+
+1. Connect your GitHub repository to a new Railway project.
+2. Railway will automatically detect the root `Dockerfile` and build both the Angular app and ASP.NET API.
+3. The built Angular static files will be served by the ASP.NET Core application from the `wwwroot` folder.
+4. No extra database plugin is strictly required, as it uses an embedded SQLite database (note: SQLite data will be ephemeral on serverless platforms unless you attach a persistent volume in Railway, which is recommended for production).
+
+Enjoy managing your tasks! ✨

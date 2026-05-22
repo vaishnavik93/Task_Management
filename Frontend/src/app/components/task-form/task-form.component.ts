@@ -1,8 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { TaskService } from '../../services/task.service';
+import { ProjectService, Project } from '../../services/project.service';
+import { AuthService } from '../../services/auth.service';
 import { Task } from '../../models/task';
 import { finalize } from 'rxjs/operators';
 import { Observable } from 'rxjs';
@@ -20,37 +22,87 @@ export class TaskFormComponent implements OnInit {
   errorMessage = signal<string>('');
   isSaving = signal<boolean>(false);
 
-  constructor(
-    private fb: FormBuilder,
-    private taskService: TaskService,
-    private router: Router,
-    private route: ActivatedRoute
-  ) {
+  // Lists for dropdowns
+  projects = signal<Project[]>([]);
+  projectMembers = signal<any[]>([]);
+
+  private fb = inject(FormBuilder);
+  private taskService = inject(TaskService);
+  private projectService = inject(ProjectService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  constructor() {
     this.taskForm = this.fb.group({
       id: [0],
       title: ['', [Validators.required, Validators.maxLength(100)]],
       description: [''],
-      isCompleted: [false],
-      dueDate: [new Date().toISOString().split('T')[0]]
+      status: ['Todo', [Validators.required]],
+      dueDate: [new Date().toISOString().split('T')[0], [Validators.required]],
+      projectId: ['', [Validators.required]],
+      assignedToUserId: ['']
     });
   }
 
   ngOnInit(): void {
+    // RBAC: Verify if the user is an Admin. If not, redirect to dashboard.
+    if (!this.authService.isAdmin()) {
+      this.router.navigate(['/dashboard']);
+      return;
+    }
+
+    this.loadProjects();
+
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.isEditMode = true;
       this.taskId = +idParam;
       this.loadTask(this.taskId);
     }
+
+    // Subscribe to projectId changes to load that project's members dynamically
+    this.taskForm.get('projectId')?.valueChanges.subscribe(projId => {
+      if (projId) {
+        this.loadProjectMembers(projId);
+      } else {
+        this.projectMembers.set([]);
+      }
+    });
+  }
+
+  loadProjects(): void {
+    this.projectService.getProjects().subscribe({
+      next: (projs) => this.projects.set(projs),
+      error: (err) => console.error('Failed to load projects', err)
+    });
+  }
+
+  loadProjectMembers(projectId: number): void {
+    this.projectService.getProjectMembers(projectId).subscribe({
+      next: (members) => {
+        this.projectMembers.set(members);
+      },
+      error: (err) => console.error('Failed to load project members', err)
+    });
   }
 
   loadTask(id: number): void {
     this.taskService.getTask(id).subscribe({
       next: (task) => {
         const formattedDate = new Date(task.dueDate).toISOString().split('T')[0];
+        
+        // Load members of this project first
+        this.loadProjectMembers(task.projectId);
+
         this.taskForm.patchValue({
-          ...task,
-          dueDate: formattedDate
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status || 'Todo',
+          dueDate: formattedDate,
+          projectId: task.projectId,
+          assignedToUserId: task.assignedToUserId || ''
         });
       },
       error: (err) => {
@@ -67,7 +119,13 @@ export class TaskFormComponent implements OnInit {
 
     this.isSaving.set(true);
     this.errorMessage.set('');
-    const taskData: Task = this.taskForm.value;
+    
+    const formValue = this.taskForm.value;
+    const taskData = {
+      ...formValue,
+      projectId: parseInt(formValue.projectId),
+      assignedToUserId: formValue.assignedToUserId ? parseInt(formValue.assignedToUserId) : null
+    };
 
     const request$: Observable<any> = this.isEditMode 
       ? this.taskService.updateTask(taskData.id, taskData)
@@ -77,11 +135,10 @@ export class TaskFormComponent implements OnInit {
       finalize(() => this.isSaving.set(false))
     ).subscribe({
       next: () => {
-        // Immediate navigation. Using replaceUrl avoids back-btn ghost states
         this.router.navigate(['/tasks'], { replaceUrl: true });
       },
       error: (err: any) => {
-        this.errorMessage.set(`Failed to ${this.isEditMode ? 'update' : 'create'} task.`);
+        this.errorMessage.set(err.error?.message || `Failed to ${this.isEditMode ? 'update' : 'create'} task.`);
         console.error(err);
       }
     });

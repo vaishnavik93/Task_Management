@@ -15,12 +15,18 @@ namespace Backend.Repositories
 
         public async Task<IEnumerable<TaskItem>> GetAllTasksAsync()
         {
-            return await _context.Tasks.ToListAsync();
+            return await _context.Tasks
+                .Include(t => t.Project)
+                .Include(t => t.AssignedToUser)
+                .ToListAsync();
         }
 
         public async Task<TaskItem?> GetTaskByIdAsync(int id)
         {
-            return await _context.Tasks.FindAsync(id);
+            return await _context.Tasks
+                .Include(t => t.Project)
+                .Include(t => t.AssignedToUser)
+                .FirstOrDefaultAsync(t => t.Id == id);
         }
 
         public async Task<TaskItem> AddTaskAsync(TaskItem task)
