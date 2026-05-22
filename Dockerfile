@@ -1,17 +1,8 @@
-# Stage 1: Build Angular Frontend
-FROM node:20-alpine AS build-frontend
-WORKDIR /app/frontend
+# We skip the Angular build stage entirely because the free tier of Railway 
+# runs out of memory (500MB limit) during 'npm ci'.
+# Instead, we rely on the pre-built 'dist' folder committed to the repository!
 
-# Copy package files and install dependencies
-COPY Frontend/package*.json ./
-RUN npm ci --no-audit --no-fund
-
-# Copy the rest of the frontend source code and build it
-COPY Frontend/ ./
-ENV NODE_OPTIONS="--max_old_space_size=512"
-RUN npm run build -- --configuration production
-
-# Stage 2: Build ASP.NET Core Backend
+# Stage 1: Build ASP.NET Core Backend
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-backend
 WORKDIR /app/backend
 
@@ -24,16 +15,15 @@ COPY Backend/ ./
 # Publish the application
 RUN dotnet publish -c Release -o /out
 
-# Stage 3: Combine and Run
+# Stage 2: Combine and Run
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
 # Copy the published backend
 COPY --from=build-backend /out ./
 
-# Copy the built frontend into the wwwroot folder
-# Angular 17+ outputs to dist/<project-name>/browser
-COPY --from=build-frontend /app/frontend/dist/Frontend/browser ./wwwroot
+# Copy the pre-built frontend from the repository directly into the wwwroot folder
+COPY Frontend/dist/Frontend/browser ./wwwroot
 
 # Set port and start the application
 EXPOSE 8080
