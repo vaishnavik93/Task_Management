@@ -4,10 +4,11 @@ WORKDIR /app/frontend
 
 # Copy package files and install dependencies
 COPY Frontend/package*.json ./
-RUN npm install
+RUN npm ci --no-audit --no-fund
 
 # Copy the rest of the frontend source code and build it
 COPY Frontend/ ./
+ENV NODE_OPTIONS="--max_old_space_size=512"
 RUN npm run build -- --configuration production
 
 # Stage 2: Build ASP.NET Core Backend
